@@ -1,6 +1,8 @@
 package ch.heig.mac;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.neo4j.driver.*;
@@ -28,7 +30,15 @@ public class Requests {
     }
 
     public List<Record> possibleSpreadCounts() {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        String query =
+                "MATCH (sickPer:Person{healthstatus:'Sick'})-[:VISITS]->(:Place)<-[visitHealthy:VISITS]-(healthyPer:Person{healthstatus:'Healthy'})" + "\n" +
+                        "WHERE visitHealthy.starttime > sickPer.confirmedtime" + "\n" +
+                        "RETURN sickPer.name AS sickName, size(collect(healthyPer.name)) AS nbHealthy";
+
+        try (var session = driver.session()) {
+            var result = session.run(query);
+            return result.list();
+        }
     }
 
     public List<Record> carelessPeople() {
@@ -52,10 +62,32 @@ public class Requests {
     }
 
     public Record topSickSite() {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        
+        String query = 
+            "MATCH (:Person{healthstatus: 'Sick'})-[v:VISITS]->(p:Place)" + "\n" +
+            "WITH p.type AS placeType, count(v) AS nbOfSickVisits" + "\n" +
+            "RETURN placeType, nbOfSickVisits" + "\n" +
+            "ORDER BY nbOfSickVisits DESC" + "\n" +
+            "LIMIT 1;";
+
+        try (var session = driver.session()) {
+            var result = session.run(query);
+            return result.peek();
+        }
     }
 
     public List<Record> sickFrom(List<String> names) {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        Map<String, Object> params = new HashMap<>();
+        params.put("list", names);
+
+        String query = 
+            "MATCH (sick:Person{healthstatus: 'Sick'})" + "\n" +
+            "WHERE sick.name IN $list" + "\n" +
+            "RETURN sick.name AS sickName;";
+
+        try (var session = driver.session()) {
+            var result = session.run(query, params);
+            return result.list();
+        }
     }
 }
