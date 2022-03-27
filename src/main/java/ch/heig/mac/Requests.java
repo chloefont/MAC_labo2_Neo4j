@@ -38,7 +38,12 @@ public class Requests {
     }
 
     public List<Record> sociallyCareful() {
-        var request = "MATCH(p:Person{healthstatus:\"Sick\"}) WHERE NOT EXISTS((p)-[v:VISITS]->(pl:Place) WHERE v.starttime > p.confirmedtime) RETURN p";
+        var request = "MATCH(p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place{type:\"Bar\"})\n" +
+                "WHERE p.confirmedtime > v.starttime AND p.confirmedtime < v.endtime\n" +
+                "WITH collect(distinct p) as badpeople\n" +
+                "MATCH(p2:Person{healthstatus:\"Sick\"})\n" +
+                "WHERE NOT p2 IN badpeople\n" +
+                "RETURN p2";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
