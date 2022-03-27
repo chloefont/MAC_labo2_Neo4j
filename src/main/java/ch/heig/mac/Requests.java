@@ -48,6 +48,10 @@ public class Requests {
     }
 
     public List<Record> peopleToInform() {
+        var request = "MATCH(sickP:Person{healthstatus:\"Sick\"})-[v:VISITS]-(pl:Place)-[v2:VISITS]-(maybeSickP:Person{healthstatus:\"Healthy\"})\n" +
+                "WITH *, apoc.coll.min([v.endtime, v2.endtime]) AS minTime, apoc.coll.max([v.starttime, v2.starttime]) AS maxTime\n" +
+                "WHERE duration.between(maxTime, minTime).hours > 2\n" +
+                "RETURN sickP.name as sickName, collect(maybeSickP.name) as peopleToInform";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
@@ -56,6 +60,8 @@ public class Requests {
     }
 
     public List<Record> healthyCompanionsOf(String name) {
+        var request = "MATCH (p:Person{name:\"Skyla Hardin\"})-[:VISITS*1..3]-(p2:Person{healthstatus:\"Healthy\"})\n" +
+                "RETURN p2.name as healthyName";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
