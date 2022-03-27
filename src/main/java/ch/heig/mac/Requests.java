@@ -79,7 +79,16 @@ public class Requests {
     }
 
     public List<Record> setHighRisk() {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        var query =
+                "MATCH(sickP:Person{healthstatus:\"Sick\"})-[v:VISITS]-(pl:Place)-[v2:VISITS]-(maybeSickP:Person{healthstatus:\"Healthy\"})\n" +
+                "WITH *, apoc.coll.min([v.endtime, v2.endtime]) AS minTime, apoc.coll.max([v.starttime, v2.starttime]) AS maxTime\n" +
+                "WHERE duration.between(maxTime, minTime).hours > 2\n" +
+                "SET maybeSickP.risk = \"high\"\n" +
+                "RETURN DISTINCT  maybeSickP.name AS highRiskName;";
+        try (var session = driver.session()) {
+            var result = session.run(query);
+            return result.list();
+        }
     }
 
     public List<Record> healthyCompanionsOf(String name) {
