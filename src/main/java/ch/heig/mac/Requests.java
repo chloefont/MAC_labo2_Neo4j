@@ -26,6 +26,7 @@ public class Requests {
     }
 
     public List<Record> possibleSpreaders() {
+        var request = "MATCH (p:Person{healthstatus: \"Sick\"}) -[v:VISITS]-> (pl:Place) <- [v2:VISITS]- (p2:Person{healthstatus: \"Healthy\"}) WHERE p.confirmedtime >= v.starttime AND p.confirmedtime > v2.starttime AND p.confirmedtime < v2.endtime RETURN p.name";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
@@ -42,10 +43,17 @@ public class Requests {
     }
 
     public List<Record> carelessPeople() {
+        var request = "MATCH (p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place) WHERE p.confirmedtime > v.starttime WITH p,count(DISTINCT pl) as rels WHERE rels > 10 RETURN p, rels ORDER BY rels DESC";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
     public List<Record> sociallyCareful() {
+        var request = "MATCH(p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place{type:\"Bar\"})\n" +
+                "WHERE p.confirmedtime > v.starttime AND p.confirmedtime < v.endtime\n" +
+                "WITH collect(distinct p) as badpeople\n" +
+                "MATCH(p2:Person{healthstatus:\"Sick\"})\n" +
+                "WHERE NOT p2 IN badpeople\n" +
+                "RETURN p2";
         throw new UnsupportedOperationException("Not implemented, yet");
     }
 
