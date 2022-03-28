@@ -26,7 +26,9 @@ public class Requests {
     }
 
     public List<Record> possibleSpreaders() {
-        var query = "MATCH (p:Person{healthstatus: \"Sick\"}) -[v:VISITS]-> (pl:Place) <- [v2:VISITS]- (p2:Person{healthstatus: \"Healthy\"}) WHERE p.confirmedtime >= v.starttime AND p.confirmedtime > v2.starttime AND p.confirmedtime < v2.endtime RETURN p.name AS sickName";
+        var query = "MATCH (p:Person{healthstatus: \"Sick\"}) -[v:VISITS]-> (pl:Place) <- [v2:VISITS]- (p2:Person{healthstatus: \"Healthy\"}) \n" +
+                "WHERE v.starttime >= p.confirmedtime  AND v2.starttime >= p.confirmedtime\n" +
+                "RETURN DISTINCT p.name AS sickName;";
         try (var session = driver.session()) {
             var result = session.run(query);
             return result.list();
@@ -35,9 +37,9 @@ public class Requests {
 
     public List<Record> possibleSpreadCounts() {
         String query =
-                "MATCH (sickPer:Person{healthstatus:'Sick'})-[:VISITS]->(:Place)<-[visitHealthy:VISITS]-(healthyPer:Person{healthstatus:'Healthy'})" + "\n" +
-                        "WHERE visitHealthy.starttime > sickPer.confirmedtime" + "\n" +
-                        "RETURN sickPer.name AS sickName, size(collect(healthyPer.name)) AS nbHealthy";
+                "MATCH (sickPer:Person{healthstatus:'Sick'})-[visitSick:VISITS]->(:Place)<-[visitHealthy:VISITS]-(healthyPer:Person{healthstatus:'Healthy'})\n" +
+                        "WHERE visitHealthy.starttime > sickPer.confirmedtime AND visitSick.starttime > sickPer.confirmedtime\n" +
+                        "RETURN sickPer.name AS sickName, size(collect(healthyPer.name)) AS nbHealthy;";
 
         try (var session = driver.session()) {
             var result = session.run(query);
@@ -46,7 +48,12 @@ public class Requests {
     }
 
     public List<Record> carelessPeople() {
-        var query = "MATCH (p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place) WHERE p.confirmedtime > v.starttime WITH p,count(DISTINCT pl) as rels WHERE rels > 10 RETURN p.name AS sickName, rels AS nbPlaces ORDER BY rels DESC";
+        var query = "MATCH (p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place) \n" +
+                "WHERE p.confirmedtime > v.starttime \n" +
+                "WITH p,count(DISTINCT pl) as rels \n" +
+                "WHERE rels > 10 \n" +
+                "RETURN p.name AS sickName, rels AS nbPlaces \n" +
+                "ORDER BY rels DESC;";
         try (var session = driver.session()) {
             var result = session.run(query);
             return result.list();
@@ -59,7 +66,7 @@ public class Requests {
                 "WITH collect(distinct p) as badpeople\n" +
                 "MATCH(p2:Person{healthstatus:\"Sick\"})\n" +
                 "WHERE NOT p2 IN badpeople\n" +
-                "RETURN p2.name as sickName";
+                "RETURN p2.name as sickName;";
 
         try (var session = driver.session()) {
             var result = session.run(query);
@@ -70,8 +77,8 @@ public class Requests {
     public List<Record> peopleToInform() {
         var query = "MATCH(sickP:Person{healthstatus:\"Sick\"})-[v:VISITS]-(pl:Place)-[v2:VISITS]-(maybeSickP:Person{healthstatus:\"Healthy\"})\n" +
                 "WITH *, apoc.coll.min([v.endtime, v2.endtime]) AS minTime, apoc.coll.max([v.starttime, v2.starttime]) AS maxTime\n" +
-                "WHERE duration.between(maxTime, minTime).hours > 2\n" +
-                "RETURN sickP.name as sickName, collect(maybeSickP.name) as peopleToInform";
+                "WHERE duration.between(maxTime, minTime).hours >= 2\n" +
+                "RETURN sickP.name as sickName, collect(maybeSickP.name) as peopleToInform;";
         try (var session = driver.session()) {
             var result = session.run(query);
             return result.list();
@@ -82,7 +89,7 @@ public class Requests {
         var query =
                 "MATCH(sickP:Person{healthstatus:\"Sick\"})-[v:VISITS]-(pl:Place)-[v2:VISITS]-(maybeSickP:Person{healthstatus:\"Healthy\"})\n" +
                 "WITH *, apoc.coll.min([v.endtime, v2.endtime]) AS minTime, apoc.coll.max([v.starttime, v2.starttime]) AS maxTime\n" +
-                "WHERE duration.between(maxTime, minTime).hours > 2\n" +
+                "WHERE duration.between(maxTime, minTime).hours >= 2\n" +
                 "SET maybeSickP.risk = \"high\"\n" +
                 "RETURN DISTINCT  maybeSickP.name AS highRiskName;";
         try (var session = driver.session()) {
@@ -96,7 +103,7 @@ public class Requests {
         params.put("name", name);
 
         var query = "MATCH (p:Person{name:$name})-[:VISITS*1..3]-(p2:Person{healthstatus:'Healthy'})\n" +
-                "RETURN p2.name as healthyName";
+                "RETURN p2.name as healthyName;";
 
         try (var session = driver.session()) {
             var result = session.run(query, params);
