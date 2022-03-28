@@ -62,7 +62,7 @@ public class Requests {
 
     public List<Record> sociallyCareful() {
         var query = "MATCH(p:Person{healthstatus:\"Sick\"})-[v:VISITS]->(pl:Place{type:\"Bar\"})\n" +
-                "WHERE p.confirmedtime > v.starttime AND p.confirmedtime < v.endtime\n" +
+                "WHERE p.confirmedtime <= v.starttime\n" +
                 "WITH collect(distinct p) as badpeople\n" +
                 "MATCH(p2:Person{healthstatus:\"Sick\"})\n" +
                 "WHERE NOT p2 IN badpeople\n" +
